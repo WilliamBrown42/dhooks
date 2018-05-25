@@ -1,17 +1,17 @@
+# Pulled from https://github.com/kyb3r/dhooks
 import json
 import requests
 import time
 import datetime
+import ast
 from collections import defaultdict
 
 class Webhook:
 	def __init__(self, url, **kwargs):
-
 		"""
 		Initialise a Webhook Embed Object
 		"""
-
-		self.url = url 
+		self.url = url
 		self.msg = kwargs.get('msg')
 		self.color = kwargs.get('color')
 		self.title = kwargs.get('title')
@@ -34,7 +34,7 @@ class Webhook:
 		value = kwargs.get('value')
 		inline = kwargs.get('inline', True)
 
-		field = { 
+		field = {
 
 		'name' : name,
 		'value' : value,
@@ -77,9 +77,9 @@ class Webhook:
 
 	@property
 	def json(self,*arg):
-		'''
+		"""
 		Formats the data into a payload
-		'''
+		"""
 
 		data = {}
 
@@ -89,15 +89,15 @@ class Webhook:
 		if self.author: embed["author"]["name"] = self.author
 		if self.author_icon: embed["author"]["icon_url"] = self.author_icon
 		if self.author_url: embed["author"]["url"] = self.author_url
-		if self.color: embed["color"] = self.color 
-		if self.desc: embed["description"] = self.desc 
-		if self.title: embed["title"] = self.title 
-		if self.title_url: embed["url"] = self.title_url 
+		if self.color: embed["color"] = self.color
+		if self.desc: embed["description"] = self.desc
+		if self.title: embed["title"] = self.title
+		if self.title_url: embed["url"] = self.title_url
 		if self.image: embed["image"]['url'] = self.image
 		if self.thumbnail: embed["thumbnail"]['url'] = self.thumbnail
 		if self.footer: embed["footer"]['text'] = self.footer
 		if self.footer_icon: embed['footer']['icon_url'] = self.footer_icon
-		if self.ts: embed["timestamp"] = self.ts 
+		if self.ts: embed["timestamp"] = self.ts
 
 		if self.fields:
 			embed["fields"] = []
@@ -105,7 +105,7 @@ class Webhook:
 				f = {}
 				f["name"] = field['name']
 				f["value"] = field['value']
-				f["inline"] = field['inline'] 
+				f["inline"] = field['inline']
 				embed["fields"].append(f)
 
 		data["embeds"].append(dict(embed))
@@ -113,36 +113,39 @@ class Webhook:
 		empty = all(not d for d in data["embeds"])
 
 		if empty and 'content' not in data:
-			print('You cant post an empty payload.')
+			print('You can not post an empty payload.')
 		if empty: data['embeds'] = []
 
 		return json.dumps(data, indent=4)
 
 
-
-
-	def post(self):
+	def post(self, rate_limit_remaning):
 		"""
 		Send the JSON formated object to the specified `self.url`.
 		"""
 
 		headers = {'Content-Type': 'application/json'}
 
-		result = requests.post(self.url, data=self.json, headers=headers)
-
-		if result.status_code == 400:
-			print("Post Failed, Error 400")
+		# Needs to make this into actual limitor
+		# switch to epoch time?
+		if rate_limit_remaning < 2:
+			print("Slow down bucko")
+			#int(time.time())
+			time.sleep(10) # This should be done better
+			# How to deal with this?
+			#print(str(result_dict['X-RateLimit-Limit']) + str(result_dict['X-RateLimit-Remaining']))
 		else:
+			result = requests.post(self.url, data=self.json, headers=headers)
+			print("You good fam")
+			#print(str(result_dict['X-RateLimit-Limit']) + str(result_dict['X-RateLimit-Remaining']))
+
+        # Change this to proper debugging
+		#if result.status_code == 400:
+		#		print("Post Failed, Error 400")
+		#else:
 			print("Payload delivered successfuly")
 			print("Code : "+str(result.status_code))
-			time.sleep(2)
-
-
-
-
-
-
-
-		
-
-
+			result_headers = result.headers
+			result_dict = ast.literal_eval(str(result_headers))
+			print(str(result_dict['X-RateLimit-Limit']) + str(result_dict['X-RateLimit-Remaining']))
+			return int(result_dict['X-RateLimit-Remaining'])
